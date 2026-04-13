@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AX Agent Quality Hub</title>
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- 탭 네비게이션 -->
+<nav class="tab-nav">
+  <div class="tab-nav-logo">AX <span>QE</span> Hub</div>
+  <div class="tab-btns">
+    <button class="tab-btn active" onclick="switchMainTab('dashboard', this)">
+      📊 Quality Dashboard
+      <span class="tab-badge" id="nav-agent-count">—</span>
+    </button>
+    <button class="tab-btn" onclick="switchMainTab('webhook', this)">
+      ⚡ GitHub Webhook
+      <span class="tab-badge" id="nav-log-count">0 events</span>
+    </button>
+  </div>
+  <div class="sync-badge">
+    <div class="sync-dot"></div>
+    데이터 실시간 공유 중
+  </div>
+</nav>
+
+<!-- ══════════ TAB 1: 대시보드 ══════════ -->
+<div id="tab-dashboard" class="tab-content active">
+
+  <!-- 모달 -->
+  <div class="d-modal-overlay" id="addModal">
+    <div class="d-modal">
+      <div class="d-modal-title">Agent 추가 / 수정</div>
+      <div class="d-modal-tabs">
+        <div class="d-modal-tab active" onclick="dSwitchTab('manual')">직접 입력</div>
+        <div class="d-modal-tab" onclick="dSwitchTab('csv')">CSV 업로드</div>
+      </div>
+      <div class="d-tab-content active" id="d-tab-manual">
+        <div class="d-form-row">
+          <div class="d-form-group"><label class="d-form-label">Agent ID</label><input class="d-form-input" id="f-id" placeholder="AGT-001"></div>
+          <div class="d-form-group"><label class="d-form-label">Agent 이름</label><input class="d-form-input" id="f-name" placeholder="상담 요약 Agent"></div>
+        </div>
+        <div class="d-form-row">
+          <div class="d-form-group"><label class="d-form-label">담당자</label><input class="d-form-input" id="f-owner" placeholder="홍길동"></div>
+          <div class="d-form-group"><label class="d-form-label">목표 완료일</label><input class="d-form-input" id="f-due" type="date"></div>
+        </div>
+        <div class="d-form-group">
+          <label class="d-form-label">단계 (클릭: 완료 → 진행중 → 미시작)</label>
+          <div class="d-phase-toggles" id="phaseToggles">
+            <button class="d-phase-toggle-btn" data-phase="0" onclick="cyclePhase(this)">기획</button>
+            <button class="d-phase-toggle-btn" data-phase="1" onclick="cyclePhase(this)">설계</button>
+            <button class="d-phase-toggle-btn" data-phase="2" onclick="cyclePhase(this)">개발</button>
+            <button class="d-phase-toggle-btn" data-phase="3" onclick="cyclePhase(this)">테스트</button>
+            <button class="d-phase-toggle-btn" data-phase="4" onclick="cyclePhase(this)">완료</button>
+          </div>
+        </div>
+        <div class="d-form-group">
+          <label class="d-form-label">산출물</label>
+          <div class="d-artifact-toggles" id="artToggles">
+            <button class="d-art-toggle" data-art="tc" onclick="toggleArt(this)">TC</button>
+            <button class="d-art-toggle" data-art="req" onclick="toggleArt(this)">요구사항</button>
+            <button class="d-art-toggle" data-art="design" onclick="toggleArt(this)">설계서</button>
+            <button class="d-art-toggle" data-art="report" onclick="toggleArt(this)">결과보고서</button>
+          </div>
+        </div>
+        <div class="d-form-group">
+          <label class="d-form-label">상태</label>
+          <select class="d-form-select" id="f-status">
+            <option value="progress">진행중</option>
+            <option value="complete">완료</option>
+            <option value="delay">지연</option>
+            <option value="missing">산출물 미비</option>
+          </select>
+        </div>
+      </div>
+      <div class="d-tab-content" id="d-tab-csv">
+        <div class="d-csv-section" onclick="document.getElementById('csvFile').click()">
+          <div style="font-size:22px;">📄</div>
+          <div style="font-size:13px;font-weight:500;margin-top:6px;color:#1a1814;">CSV 파일 선택</div>
+          <div style="font-size:11px;color:#7a7570;margin-top:4px;">id, name, owner, due, p1~p5, tc, req, design, report, status</div>
+        </div>
+        <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(this)">
+        <div style="background:#f0ede6;border-radius:6px;padding:12px;font-size:11px;color:#7a7570;line-height:1.8;">
+          <strong style="color:#1a1814;display:block;margin-bottom:4px;">CSV 예시</strong>
+          AGT-001,상담요약Agent,홍길동,2025-06-30,done,done,current,pending,pending,y,y,n,n,progress
+        </div>
+      </div>
+      <div class="d-modal-footer">
+        <button class="d-btn d-btn-ghost" onclick="closeModal()">취소</button>
+        <button class="d-btn d-btn-primary" onclick="saveAgent()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-shell">
+    <aside class="d-sidebar">
+      <div class="d-logo">AX QE Team</div>
+      <div class="d-sidebar-title">Agent Quality Dashboard</div>
+      <div class="d-sidebar-section">보기</div>
+      <div class="d-nav-item active" onclick="setView('all',this)"><div class="d-nav-dot" style="background:#f5f3ee;"></div>전체 Agent</div>
+      <div class="d-nav-item" onclick="setView('delay',this)"><div class="d-nav-dot" style="background:#c0392b;"></div>지연 Agent</div>
+      <div class="d-nav-item" onclick="setView('missing',this)"><div class="d-nav-dot" style="background:#b5830a;"></div>산출물 미비</div>
+      <div class="d-nav-item" onclick="setView('complete',this)"><div class="d-nav-dot" style="background:#2ecc71;"></div>완료</div>
+      <div class="d-nav-item" onclick="setView('progress',this)"><div class="d-nav-dot" style="background:#4a90d9;"></div>진행중</div>
+      <div class="d-sidebar-section">단계별</div>
+      <div class="d-nav-item" onclick="setPhaseView('기획',this)"><div class="d-nav-dot" style="background:#4a90d9;"></div>기획</div>
+      <div class="d-nav-item" onclick="setPhaseView('설계',this)"><div class="d-nav-dot" style="background:#7b68ee;"></div>설계</div>
+      <div class="d-nav-item" onclick="setPhaseView('개발',this)"><div class="d-nav-dot" style="background:#f5a623;"></div>개발</div>
+      <div class="d-nav-item" onclick="setPhaseView('테스트',this)"><div class="d-nav-dot" style="background:#e74c3c;"></div>테스트</div>
+      <div class="d-sidebar-stats">
+        <div class="d-sidebar-stat"><span>총 Agent</span><span id="sb-total">—</span></div>
+        <div class="d-sidebar-stat"><span>완료율</span><span id="sb-rate">—</span></div>
+        <div class="d-sidebar-stat"><span style="color:#c0392b;">지연</span><span id="sb-risk" style="color:#c0392b;">—</span></div>
+        <div class="d-sidebar-stat"><span style="color:#b5830a;">산출물 미비</span><span id="sb-missing" style="color:#b5830a;">—</span></div>
+      </div>
+    </aside>
+
+    <div class="d-main">
+      <div class="d-topbar">
+        <div class="d-topbar-title" id="pageTitle">전체 Agent 현황</div>
+        <div class="d-topbar-actions">
+          <button class="d-btn d-btn-ghost" onclick="exportCSV()">CSV 내보내기</button>
+          <button class="d-btn d-btn-primary" onclick="openModal()">+ Agent 추가</button>
+        </div>
+      </div>
+      <div class="d-content">
+        <div class="d-kpi-row">
+          <div class="d-kpi-card total"><div class="d-kpi-label">전체 Agent</div><div class="d-kpi-value" id="kpi-total">0</div><div class="d-kpi-sub">등록된 Agent</div></div>
+          <div class="d-kpi-card done"><div class="d-kpi-label">완료율</div><div class="d-kpi-value" id="kpi-rate">0%</div><div class="d-kpi-sub" id="kpi-done-sub">0개 완료</div></div>
+          <div class="d-kpi-card risk"><div class="d-kpi-label">지연 Agent</div><div class="d-kpi-value" id="kpi-delay">0</div><div class="d-kpi-sub">즉시 확인 필요</div></div>
+          <div class="d-kpi-card prog"><div class="d-kpi-label">산출물 미비</div><div class="d-kpi-value" id="kpi-missing">0</div><div class="d-kpi-sub">산출물 없는 Agent</div></div>
+        </div>
+        <div class="d-two-col">
+          <div class="d-phase-overview">
+            <div class="d-section-header"><div class="d-section-title">단계별 분포</div></div>
+            <div class="d-phase-bars" id="phaseBars"></div>
+          </div>
+          <div class="d-risk-panel">
+            <div class="d-section-header"><div class="d-section-title">⚠️ 위험 Agent</div><span style="font-size:11px;color:#7a7570;" id="riskCount">—</span></div>
+            <div id="riskList"></div>
+          </div>
+        </div>
+        <div class="d-table-wrap">
+          <div class="d-table-toolbar">
+            <input class="d-search-input" id="searchInput" placeholder="Agent 이름 또는 담당자 검색..." oninput="renderTable()">
+            <select class="d-filter-select" id="statusFilter" onchange="renderTable()">
+              <option value="">전체 상태</option>
+              <option value="complete">완료</option>
+              <option value="progress">진행중</option>
+              <option value="delay">지연</option>
+              <option value="missing">산출물 미비</option>
+            </select>
+          </div>
+          <table class="d-agent-table" id="agentTable">
+            <thead><tr>
+              <th>ID</th><th>Agent 이름</th><th>담당자</th>
+              <th>단계 진행</th><th>진척률</th><th>산출물</th>
+              <th>상태</th><th>완료일</th><th></th>
+            </tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div class="d-pagination">
+            <span id="paginationInfo">—</span>
+            <div class="d-page-btns" id="pageBtns"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB 2: Webhook ══════════ -->
+<div id="tab-webhook" class="tab-content">
+  <div class="w-app">
+
+    <!-- 왼쪽: 미니 대시보드 -->
+    <div class="w-dashboard">
+      <div class="w-dash-header">
+        <div class="w-dash-title">Live Agent Status</div>
+        <div class="w-sync-time" id="w-sync-time">—</div>
+      </div>
+      <div class="w-kpi-row">
+        <div class="w-kpi"><div class="w-kpi-label">Total</div><div class="w-kpi-val" id="w-kpi-total">0</div></div>
+        <div class="w-kpi"><div class="w-kpi-label">완료율</div><div class="w-kpi-val green" id="w-kpi-rate">0%</div></div>
+        <div class="w-kpi"><div class="w-kpi-label">지연</div><div class="w-kpi-val red" id="w-kpi-delay">0</div></div>
+        <div class="w-kpi"><div class="w-kpi-label">미비</div><div class="w-kpi-val yellow" id="w-kpi-missing">0</div></div>
+      </div>
+      <div class="w-table-wrap">
+        <div class="w-table-head">
+          <span>ID</span><span>Agent</span><span>담당자</span>
+          <span>단계</span><span>진척률</span><span>상태</span>
+        </div>
+        <div id="w-agentRows"></div>
+      </div>
+    </div>
+
+    <!-- 오른쪽: 시뮬레이터 -->
+    <div class="w-simulator">
+
+      <div class="w-sim-section rule-sec">
+        <div class="w-sim-title">자동화 규칙</div>
+        <div class="w-rules-box">
+          <div class="w-rule-item"><span class="w-rule-trigger">PR merge (main)</span><span class="w-rule-arrow">→</span><span class="w-rule-action">개발 완료 ✓</span></div>
+          <div class="w-rule-item"><span class="w-rule-trigger">docs/ 커밋</span><span class="w-rule-arrow">→</span><span class="w-rule-action">산출물 자동 등록</span></div>
+          <div class="w-rule-item"><span class="w-rule-trigger">CI/CD 통과</span><span class="w-rule-arrow">→</span><span class="w-rule-action">테스트 완료 ✓</span></div>
+          <div class="w-rule-item"><span class="w-rule-trigger">브랜치 AGT-XXX</span><span class="w-rule-arrow">→</span><span class="w-rule-action">Agent ID 자동 감지</span></div>
+        </div>
+      </div>
+
+      <div class="w-sim-section sce-sec">
+        <div class="w-sim-title">빠른 시나리오</div>
+        <div class="w-scenarios">
+          <button class="w-scenario-btn" onclick="fireScenario('pr_merge')">
+            <div class="w-scenario-icon" style="background:#0d2119;">🔀</div>
+            <div><div class="w-scenario-name">PR Merge → 개발 완료</div><div class="w-scenario-desc">feature/AGT-001 → main 머지</div></div>
+          </button>
+          <button class="w-scenario-btn" onclick="fireScenario('doc_commit')">
+            <div class="w-scenario-icon" style="background:#1e1033;">📄</div>
+            <div><div class="w-scenario-name">docs 커밋 → 산출물 감지</div><div class="w-scenario-desc">AGT-002/docs/TC.xlsx 업로드</div></div>
+          </button>
+          <button class="w-scenario-btn" onclick="fireScenario('ci_pass')">
+            <div class="w-scenario-icon" style="background:#051d4d;">✅</div>
+            <div><div class="w-scenario-name">CI 통과 → 테스트 완료</div><div class="w-scenario-desc">AGT-003 CI/CD pipeline passed</div></div>
+          </button>
+          <button class="w-scenario-btn" onclick="fireScenario('no_id')">
+            <div class="w-scenario-icon" style="background:#2d0f0e;">⚠️</div>
+            <div><div class="w-scenario-name">Agent ID 미감지 (규칙 위반)</div><div class="w-scenario-desc">feature/fix-chatbot-bug</div></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="w-sim-section pr-sec">
+        <div class="w-sim-title">PR Merge 이벤트</div>
+        <div class="w-input-group">
+          <label class="w-input-label">브랜치명</label>
+          <input class="w-input" id="pr-branch" placeholder="feature/AGT-001-상담요약" oninput="parseBranch(this.value,'pr-detect')">
+          <div class="w-branch-preview" id="pr-detect">브랜치명 입력 시 Agent ID 자동 감지</div>
+        </div>
+        <div class="w-input-group">
+          <label class="w-input-label">PR 제목</label>
+          <input class="w-input" id="pr-title" placeholder="feat: 상담요약 Agent 개발 완료">
+        </div>
+        <div class="w-input-group">
+          <label class="w-input-label">작성자</label>
+          <input class="w-input" id="pr-author" placeholder="developer-kim">
+        </div>
+        <button class="w-fire-btn green" onclick="firePRMerge()">🔀 PR Merge 이벤트 발송</button>
+      </div>
+
+      <div class="w-sim-section doc-sec">
+        <div class="w-sim-title">파일 커밋 (산출물)</div>
+        <div class="w-input-group">
+          <label class="w-input-label">Agent</label>
+          <select class="w-select" id="commit-agent"><option value="">Agent 선택...</option></select>
+        </div>
+        <div class="w-input-group">
+          <label class="w-input-label">커밋 파일 경로</label>
+          <input class="w-input" id="commit-file" placeholder="AGT-001/docs/TC.xlsx">
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#6e7681;margin-bottom:6px;">TC / 요구사항 / 설계 / 결과 키워드 자동 감지</div>
+        <button class="w-fire-btn purple" onclick="fireCommit()">📄 커밋 이벤트 발송</button>
+      </div>
+
+      <div class="w-sim-section ci-sec">
+        <div class="w-sim-title">CI/CD 이벤트</div>
+        <div class="w-input-group">
+          <label class="w-input-label">Agent</label>
+          <select class="w-select" id="ci-agent"><option value="">Agent 선택...</option></select>
+        </div>
+        <div class="w-input-group">
+          <label class="w-input-label">파이프라인 결과</label>
+          <select class="w-select" id="ci-result">
+            <option value="success">✅ success</option>
+            <option value="failure">❌ failure</option>
+          </select>
+        </div>
+        <button class="w-fire-btn blue" onclick="fireCI()">⚡ CI/CD 이벤트 발송</button>
+      </div>
+
+      <div class="w-event-log">
+        <div class="w-log-title">Webhook Event Log</div>
+        <div id="w-logList"><div class="w-log-empty">이벤트 없음 — 시뮬레이터를 실행해보세요</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 순서 중요: data.js → dashboard.js → webhook.js -->
+<script src="js/data.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/webhook.js"></script>
+<script>
+  // 초기화
+  renderDashboard();
+  renderWebhookDash();
+</script>
+</body>
+</html>
