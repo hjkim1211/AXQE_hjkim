@@ -13,32 +13,32 @@ const ART_LABELS   = { tc: 'TC', req: '요구사항', design: '설계서', repor
 let agents = [
   {
     id: 'AGT-001', name: '상담 요약 Agent', owner: '김민준', due: '2025-07-31',
-    phases: ['done', 'done', 'pending', 'pending', 'pending'],
+    phases: ['done', 'done', 'currnet', 'pending', 'pending'],
     artifacts: { tc: 'n', req: 'y', design: 'n', report: 'n' }, status: 'progress'
   },
   {
     id: 'AGT-002', name: 'FAQ 응답 Agent', owner: '이서연', due: '2025-08-15',
-    phases: ['done', 'done', 'done', 'pending', 'pending'],
+    phases: ['done', 'done', 'currnet', 'pending', 'pending'],
     artifacts: { tc: 'n', req: 'y', design: 'y', report: 'n' }, status: 'progress'
   },
   {
     id: 'AGT-003', name: '계약서 검토 Agent', owner: '박지호', due: '2025-06-01',
-    phases: ['done', 'done', 'done', 'pending', 'pending'],
+    phases: ['done', 'done', 'currnet', 'pending', 'pending'],
     artifacts: { tc: 'n', req: 'y', design: 'n', report: 'n' }, status: 'missing'
   },
   {
     id: 'AGT-004', name: '이메일 분류 Agent', owner: '최수아', due: '2025-09-01',
-    phases: ['done', 'pending', 'pending', 'pending', 'pending'],
+    phases: ['done', 'pending', 'currnet', 'pending', 'pending'],
     artifacts: { tc: 'n', req: 'n', design: 'n', report: 'n' }, status: 'progress'
   },
   {
     id: 'AGT-005', name: '회의록 생성 Agent', owner: '정도윤', due: '2025-05-01',
-    phases: ['done', 'done', 'done', 'done', 'done'],
+    phases: ['done', 'done', 'currnet', 'done', 'done'],
     artifacts: { tc: 'y', req: 'y', design: 'y', report: 'y' }, status: 'complete'
   },
   {
     id: 'AGT-006', name: '코드 리뷰 Agent', owner: '한지민', due: '2025-05-15',
-    phases: ['done', 'done', 'pending', 'pending', 'pending'],
+    phases: ['done', 'done', 'currnet', 'pending', 'pending'],
     artifacts: { tc: 'n', req: 'y', design: 'n', report: 'n' }, status: 'delay'
   },
 ];
