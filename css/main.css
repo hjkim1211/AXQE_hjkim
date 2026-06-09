@@ -162,7 +162,7 @@
 .d-content { padding: 24px 28px; }
 
 /* KPI */
-.d-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+.d-kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 280px)); gap: 14px; margin-bottom: 22px; }
 .d-kpi-card { background: #ffffff; border: 1px solid #ddd9d0; border-radius: 10px; padding: 18px 20px; position: relative; overflow: hidden; }
 .d-kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
 .d-kpi-card.total::before { background: #1a1814; }
